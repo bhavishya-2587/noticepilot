@@ -12,15 +12,23 @@ Important deadlines, requirements, events, and actions can be buried inside the 
 
 NoticePilot aims to reduce the effort required to find and act on this information.
 
-## MVP
+## Project Status
 
-The first version of NoticePilot will:
+NoticePilot is being developed for GatewayHacks 2026.
+
+The project is currently in the foundation stage. The Next.js application, TypeScript setup, Git workflow, environment-variable convention, and Vercel deployment pipeline are established.
+
+The notice ingestion and AI processing pipeline are intentionally not implemented yet.
+
+## Planned MVP
+
+The MVP will:
 
 - Accept an academic notice as input
 - Extract and interpret its contents
 - Generate a short, clear title
 - Identify who the notice is for
-- Summarize the important information
+- Summarize important information
 - Extract dates, times, venues, deadlines, and events
 - Identify the issuer or relevant notice details
 - Show missing information explicitly as `Not specified`
@@ -30,22 +38,24 @@ The first version of NoticePilot will:
 
 The original notice remains the source of truth.
 
-AI-generated information is treated as an interpretation of that source.
+AI-generated information will be treated as an interpretation of that source and will be validated before being used by the application.
 
-## Architecture
+## Current Architecture
+
+The planned application flow is:
 
 ```text
 Student
    ↓
-Frontend
+Next.js Frontend
    ↓
-Backend
+Backend / API
    ↓
 Text Extraction
    ↓
 AI Interpretation
    ↓
-Structured Notice Data
+Structured JSON
    ↓
 Validation
    ↓
