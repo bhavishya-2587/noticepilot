@@ -14,3 +14,5 @@ export type {
 } from "./types";
 
 export { MAX_UPLOAD_SIZE_BYTES } from "./types";
+export { extractPdfText, MAX_PDF_PAGES } from "./pdf-extractor";
+export type { PdfData } from "./pdf-extractor";

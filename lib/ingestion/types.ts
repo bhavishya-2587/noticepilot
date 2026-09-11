@@ -62,6 +62,7 @@ export type UploadValidationResult =
 export type ExtractionErrorCode =
   | "document_unreadable"
   | "text_extraction_failed"
+  | "page_limit_exceeded"
   | "ocr_failed";
 
 export interface ExtractionError {
