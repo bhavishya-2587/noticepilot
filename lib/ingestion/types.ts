@@ -40,9 +40,12 @@ export interface SourceSegment {
 }
 
 export type UploadValidationErrorCode =
+  | "invalid_file"
+  | "empty_file"
   | "missing_file"
   | "unsupported_media_type"
-  | "file_too_large";
+  | "file_too_large"
+  | "media_type_mismatch";
 
 export interface UploadValidationError {
   code: UploadValidationErrorCode;
