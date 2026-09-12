@@ -1,4 +1,4 @@
-import { NoticeUpload } from "./components/notice-upload";
+import { NoticeUploadIngestion } from "./components/notice-upload-ingestion";
 
 export default function Home() {
   return (
@@ -10,7 +10,7 @@ export default function Home() {
         </p>
       </div>
       <div className="mt-8 w-full max-w-xl">
-        <NoticeUpload />
+        <NoticeUploadIngestion />
       </div>
     </main>
   );
