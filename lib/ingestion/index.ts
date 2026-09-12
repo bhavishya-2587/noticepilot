@@ -16,4 +16,6 @@ export type {
 export { MAX_UPLOAD_SIZE_BYTES } from "./types";
 export { extractPdfText, MAX_PDF_PAGES } from "./pdf-extractor";
 export type { PdfData } from "./pdf-extractor";
+export { extractImageText } from "./image-ocr-extractor";
+export type { ImageData } from "./image-ocr-extractor";
 export { validateUpload } from "./upload-validator";

@@ -29,6 +29,9 @@ export type SourceLocation =
     }
   | {
       sourceType: "image";
+    }
+  | {
+      sourceType: "image-region";
       boundingBox: ImageBoundingBox;
     };
 
