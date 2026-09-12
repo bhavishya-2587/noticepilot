@@ -10,6 +10,7 @@ export type {
   SupportedMediaType,
   UploadValidationError,
   UploadValidationErrorCode,
+  ValidationFailureIngestionResult,
   UploadValidationResult,
 } from "./types";
 
@@ -19,3 +20,4 @@ export type { PdfData } from "./pdf-extractor";
 export { extractImageText } from "./image-ocr-extractor";
 export type { ImageData } from "./image-ocr-extractor";
 export { validateUpload } from "./upload-validator";
+export { ingestNotice } from "./ingest-notice";

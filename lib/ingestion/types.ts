@@ -76,6 +76,14 @@ export interface ExtractionError {
   message: string;
 }
 
+export interface ValidationFailureIngestionResult {
+  status: "failed";
+  extractedText: "";
+  sourceSegments: readonly [];
+  error: UploadValidationError;
+  validationErrors: readonly UploadValidationError[];
+}
+
 interface IngestionResultBase {
   document: DocumentIdentity;
   extractedText: string;
@@ -95,4 +103,5 @@ export type NormalizedIngestionResult =
   | (IngestionResultBase & {
       status: "failed";
       error: ExtractionError;
-    });
+    })
+  | ValidationFailureIngestionResult;
