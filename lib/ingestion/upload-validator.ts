@@ -1,5 +1,6 @@
 import {
   MAX_UPLOAD_SIZE_BYTES,
+  SUPPORTED_UPLOAD_MEDIA_TYPES,
   type SupportedMediaType,
   type UploadValidationError,
   type UploadValidationResult,
@@ -13,7 +14,7 @@ const MEDIA_TYPE_BY_EXTENSION: Record<string, SupportedMediaType> = {
 };
 
 const SUPPORTED_MEDIA_TYPES = new Set<SupportedMediaType>(
-  Object.values(MEDIA_TYPE_BY_EXTENSION),
+  SUPPORTED_UPLOAD_MEDIA_TYPES,
 );
 
 function getFilenameExtension(filename: string): string {

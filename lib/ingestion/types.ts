@@ -5,6 +5,16 @@ export type SupportedMediaType =
   | "image/jpeg"
   | "image/png";
 
+// These values are intentionally dependency-free so client UI can describe the
+// upload contract without importing server-side ingestion modules.
+export const SUPPORTED_UPLOAD_MEDIA_TYPES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+] as const satisfies readonly SupportedMediaType[];
+
+export const SUPPORTED_UPLOAD_FILE_EXTENSIONS = ["pdf", "jpg", "jpeg", "png"] as const;
+
 export interface DocumentIdentity {
   documentId: string;
   originalFilename: string;
