@@ -4,7 +4,8 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["tesseract.js", "tesseract.js-core"],
   outputFileTracingIncludes: {
     "/api/notices/ingest": [
-      "./node_modules/tesseract.js/src/worker-script/**/*",
+      "./node_modules/tesseract.js/**/*",
+      "./node_modules/tesseract.js-core/**/*",
     ],
   },
 };
