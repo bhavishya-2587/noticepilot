@@ -104,26 +104,29 @@ image routing, and PDF API routing are covered by Vitest.
 
 Commands run:
 
-- `npm test`
-- `npm run lint`
-- `npm run build`
-- Focused OCR/upload tests
-- Production bundle inspection for Node worker references
-
-The exact final results are recorded after the final validation pass.
+- `npm test`: 45 tests passed.
+- `npm run lint`: passed.
+- `npm run build`: passed.
+- Focused OCR/upload tests: passed.
+- Production bundle inspection: no Node worker references.
 
 ## Deployment
 
 The production target is `https://noticepilot-seven.vercel.app`. The route
 remains explicitly Node.js because PDF extraction uses server-side Node
-execution. Production browser verification must be performed against the
-deployment after this change is pushed.
+execution. After pushing commit `9d03828`, the production page loaded and the
+multipart API returned the expected generic invalid-request response for a
+request without form data. The browser automation environment could not access
+the local Linux fixture path, so live PDF/image upload extraction was not
+claimed; those paths are covered by the local extraction and browser-boundary
+tests.
 
 ## Git
 
 - Branch: `main`
-- Commits and push status: recorded at completion
-- Final working-tree status: recorded at completion
+- Commits: `9d03828` (`complete stage 3 notice ingestion`)
+- Push status: pushed to `origin/main`
+- Final working-tree status: clean after the follow-up documentation commit
 
 ## Problems and Fixes
 
@@ -170,7 +173,7 @@ source evidence.
 | Empty/failure handling | Complete | PDF, OCR, route, and UI tests |
 | Security/privacy review | Complete | Limits, cleanup, safe errors, no persistence |
 | Documentation | Complete | README and this handover |
-| Build/lint/tests | Pending rerun | Required after final edits |
+| Build/lint/tests | Complete | 45 tests passed; lint and build passed |
 | Vercel worker compatibility | Complete | Server bundle inspection |
-| Production verification | Pending deployment | Must be checked after push |
-| Git commit/push | Pending | Performed after validation |
+| Production verification | Partial | Live page/API checked; live file upload unavailable in browser harness |
+| Git commit/push | Complete | Commit pushed to `origin/main` |
