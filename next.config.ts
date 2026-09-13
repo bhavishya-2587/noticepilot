@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
     "/api/notices/ingest": [
       "./node_modules/tesseract.js/**/*",
       "./node_modules/tesseract.js-core/**/*",
+      "./node_modules/bmp-js/**/*",
     ],
   },
 };
