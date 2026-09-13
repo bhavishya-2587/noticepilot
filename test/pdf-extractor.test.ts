@@ -46,9 +46,18 @@ describe("extractPdfText", () => {
   });
 
   it("returns document_unreadable for malformed PDF data", async () => {
-    await expect(extractPdfText(new TextEncoder().encode("not a PDF"), document)).resolves.toMatchObject({
+    const result = await extractPdfText(
+      new TextEncoder().encode("not a PDF"),
+      document,
+    );
+
+    expect(result).toMatchObject({
       status: "failed",
-      error: { code: "document_unreadable" },
+      error: {
+        code: "document_unreadable",
+        message: "The uploaded PDF could not be read.",
+      },
     });
+    expect(JSON.stringify(result)).not.toContain("Invalid PDF");
   });
 });

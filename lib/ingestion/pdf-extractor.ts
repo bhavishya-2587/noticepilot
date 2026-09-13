@@ -32,8 +32,14 @@ function createFailureResult(
     | "document_unreadable"
     | "text_extraction_failed"
     | "page_limit_exceeded",
-  error: unknown,
 ): NormalizedIngestionResult {
+  const message =
+    code === "page_limit_exceeded"
+      ? `PDF exceeds the ${MAX_PDF_PAGES}-page limit.`
+      : code === "document_unreadable"
+        ? "The uploaded PDF could not be read."
+        : "The PDF text could not be extracted.";
+
   return {
     status: "failed",
     document,
@@ -41,12 +47,7 @@ function createFailureResult(
     sourceSegments: [],
     error: {
       code,
-      message:
-        typeof error === "string"
-          ? error
-          : error instanceof Error
-            ? error.message
-            : "The PDF could not be read.",
+      message,
     },
   };
 }
@@ -81,8 +82,8 @@ export async function extractPdfText(
   try {
     try {
       pdf = await getDocumentProxy(pdfData);
-    } catch (error) {
-      return createFailureResult(document, "document_unreadable", error);
+    } catch {
+      return createFailureResult(document, "document_unreadable");
     }
 
     const totalPages = pdf.numPages;
@@ -91,7 +92,6 @@ export async function extractPdfText(
       return createFailureResult(
         document,
         "page_limit_exceeded",
-        `PDF exceeds the ${MAX_PDF_PAGES}-page limit.`,
       );
     }
 
@@ -110,8 +110,8 @@ export async function extractPdfText(
             createPageSegment(document.documentId, pageNumber, pageText),
           );
         }
-      } catch (error) {
-        return createFailureResult(document, "text_extraction_failed", error);
+      } catch {
+        return createFailureResult(document, "text_extraction_failed");
       } finally {
         page?.cleanup();
       }

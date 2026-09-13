@@ -3,7 +3,12 @@
 import { useRef, useState } from "react";
 
 import type { NoticeIngestionResponse } from "@/lib/ingestion/ingestion-response";
-import type { NormalizedIngestionResult, SourceLocation } from "@/lib/ingestion/types";
+import { validateUpload } from "@/lib/ingestion/upload-validator";
+import type {
+  DocumentIdentity,
+  NormalizedIngestionResult,
+  SourceLocation,
+} from "@/lib/ingestion/types";
 
 import {
   NoticeUpload,
@@ -81,6 +86,43 @@ export function NoticeUploadIngestion() {
     setSubmissionState({ status: "processing", message: "Processing your notice…" });
 
     try {
+      const validation = validateUpload(file);
+
+      if (!validation.valid) {
+        setSubmissionState({
+          status: "error",
+          message:
+            validation.errors[0]?.message ?? "The file could not be processed.",
+        });
+        return;
+      }
+
+      if (validation.mediaType !== "application/pdf") {
+        const { extractImageText } = await import(
+          "@/lib/ingestion/image-ocr-extractor"
+        );
+        const document: DocumentIdentity = {
+          documentId: crypto.randomUUID(),
+          originalFilename: file.name,
+          mediaType: validation.mediaType,
+        };
+        const imageResult = await extractImageText(file, document);
+
+        if (imageResult.status === "success" || imageResult.status === "empty") {
+          setResult(imageResult);
+          setSubmissionState({
+            status: "success",
+            message:
+              imageResult.status === "success"
+                ? "Text extracted successfully."
+                : "Notice processed.",
+          });
+        } else {
+          setSubmissionState({ status: "error", message: imageResult.error.message });
+        }
+        return;
+      }
+
       const formData = new FormData();
       formData.set("file", file);
       const response = await fetch("/api/notices/ingest", { method: "POST", body: formData });

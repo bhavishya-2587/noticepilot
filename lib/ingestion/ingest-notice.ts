@@ -2,7 +2,6 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
-import { extractImageText } from "./image-ocr-extractor";
 import { extractPdfText } from "./pdf-extractor";
 import type {
   DocumentIdentity,
@@ -72,5 +71,14 @@ export async function ingestNotice(
     return extractPdfText(data, document);
   }
 
-  return extractImageText(data, document);
+  return {
+    status: "failed",
+    document,
+    extractedText: "",
+    sourceSegments: [],
+    error: {
+      code: "ocr_failed",
+      message: "Image OCR must be performed in the browser.",
+    },
+  };
 }

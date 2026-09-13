@@ -80,6 +80,26 @@ describe("NoticeUpload", () => {
     expect(onContinue).toHaveBeenCalledWith(file);
   });
 
+  it("allows another notice after a successful submission", async () => {
+    const user = userEvent.setup();
+    const onContinue = vi.fn();
+    render(
+      <NoticeUpload
+        onContinue={onContinue}
+        submissionState={{ status: "success", message: "Processed." }}
+      />,
+    );
+
+    const input = screen.getByLabelText("Choose a notice file");
+    await user.upload(input, createFile("next-notice.png", "image/png"));
+
+    expect(screen.getByText("next-notice.png")).toBeTruthy();
+    expect(
+      (screen.getByRole("button", { name: "Continue" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(false);
+  });
+
   it("lets keyboard users activate the drop zone and reach the file input", () => {
     render(<NoticeUpload />);
     const input = screen.getByLabelText("Choose a notice file");

@@ -1,25 +1,14 @@
-import { Buffer } from "node:buffer";
-
-import { createWorker } from "tesseract.js";
+import Tesseract from "tesseract.js/dist/tesseract.min.js";
 
 import type {
   DocumentIdentity,
   NormalizedIngestionResult,
 } from "./types";
 
-export type ImageData = Buffer | Uint8Array | ArrayBuffer;
-
-function normalizeImageData(data: ImageData): Buffer {
-  if (data instanceof ArrayBuffer) {
-    return Buffer.from(data);
-  }
-
-  return Buffer.from(data);
-}
+export type ImageData = Blob | string;
 
 function createFailureResult(
   document: DocumentIdentity,
-  error: unknown,
 ): NormalizedIngestionResult {
   return {
     status: "failed",
@@ -28,12 +17,7 @@ function createFailureResult(
     sourceSegments: [],
     error: {
       code: "ocr_failed",
-      message:
-        typeof error === "string"
-          ? error
-          : error instanceof Error
-            ? error.message
-            : "The image could not be processed with OCR.",
+      message: "The image could not be processed with OCR.",
     },
   };
 }
@@ -42,11 +26,16 @@ export async function extractImageText(
   data: ImageData,
   document: DocumentIdentity,
 ): Promise<NormalizedIngestionResult> {
-  let worker: Awaited<ReturnType<typeof createWorker>> | undefined;
+  let worker: Awaited<ReturnType<typeof Tesseract.createWorker>> | undefined;
+  let imageUrl: string | undefined;
 
   try {
-    worker = await createWorker("eng");
-    const result = await worker.recognize(normalizeImageData(data));
+    worker = await Tesseract.createWorker("eng");
+    const imageSource =
+      typeof data === "string"
+        ? data
+        : (imageUrl = URL.createObjectURL(data));
+    const result = await worker.recognize(imageSource);
     const text = result.data.text.trim();
 
     if (text.length === 0) {
@@ -71,9 +60,13 @@ export async function extractImageText(
         },
       ],
     };
-  } catch (error) {
-    return createFailureResult(document, error);
+  } catch {
+    return createFailureResult(document);
   } finally {
+    if (imageUrl) {
+      URL.revokeObjectURL(imageUrl);
+    }
+
     if (worker) {
       try {
         await worker.terminate();

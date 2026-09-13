@@ -1,12 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { extractPdfText, extractImageText } = vi.hoisted(() => ({
+const { extractPdfText } = vi.hoisted(() => ({
   extractPdfText: vi.fn(),
-  extractImageText: vi.fn(),
 }));
 
 vi.mock("@/lib/ingestion/pdf-extractor", () => ({ extractPdfText }));
-vi.mock("@/lib/ingestion/image-ocr-extractor", () => ({ extractImageText }));
 
 import { ingestNotice } from "@/lib/ingestion/ingest-notice";
 
@@ -15,7 +13,6 @@ import { createUploadFile } from "./fixtures/upload-file";
 describe("ingestNotice", () => {
   beforeEach(() => {
     extractPdfText.mockReset();
-    extractImageText.mockReset();
   });
 
   it("fails invalid uploads before creating a document or attempting extraction", async () => {
@@ -32,7 +29,6 @@ describe("ingestNotice", () => {
     });
     expect(result).not.toHaveProperty("document");
     expect(extractPdfText).not.toHaveBeenCalled();
-    expect(extractImageText).not.toHaveBeenCalled();
   });
 
   it("creates an identity after validation and routes PDFs to the PDF extractor", async () => {
@@ -64,28 +60,15 @@ describe("ingestNotice", () => {
   it.each([
     ["notice.jpg", "image/jpeg"],
     ["notice.png", "image/png"],
-  ] as const)("routes valid %s uploads to the image OCR extractor", async (name, type) => {
-    const normalizedResult = {
-      status: "empty" as const,
+  ] as const)("returns a safe result for direct server-side %s ingestion", async (name, type) => {
+    await expect(ingestNotice(createUploadFile("image", name, type))).resolves.toMatchObject({
+      status: "failed",
       document: {
-        documentId: "image-document",
         originalFilename: name,
         mediaType: type,
+        documentId: expect.any(String),
       },
-      extractedText: "" as const,
-      sourceSegments: [] as const,
-    };
-    extractImageText.mockResolvedValueOnce(normalizedResult);
-
-    await expect(ingestNotice(createUploadFile("image", name, type))).resolves.toBe(
-      normalizedResult,
-    );
-
-    expect(extractImageText).toHaveBeenCalledOnce();
-    expect(extractImageText.mock.calls[0]?.[1]).toMatchObject({
-      originalFilename: name,
-      mediaType: type,
-      documentId: expect.any(String),
+      error: { code: "ocr_failed" },
     });
   });
 
@@ -107,6 +90,5 @@ describe("ingestNotice", () => {
       error: { code: "document_unreadable" },
     });
     expect(extractPdfText).not.toHaveBeenCalled();
-    expect(extractImageText).not.toHaveBeenCalled();
   });
 });
