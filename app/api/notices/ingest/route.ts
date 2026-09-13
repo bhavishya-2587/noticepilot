@@ -1,7 +1,7 @@
 import { ingestNotice } from "@/lib/ingestion/ingest-notice";
 import type { NoticeIngestionResponse } from "@/lib/ingestion/ingestion-response";
 import type { NormalizedIngestionResult } from "@/lib/ingestion/types";
-
+export const runtime = "nodejs";
 function json(body: NoticeIngestionResponse, status: number): Response {
   return Response.json(body, { status });
 }
