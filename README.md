@@ -27,9 +27,6 @@ persisted. Browser OCR keeps images in the browser; the server receives PDF
 uploads only. PDF source segments identify page numbers. Image OCR identifies
 the source as `image` and preserves confidence when Tesseract provides it.
 
-See [Stage_3_Handover.md](./Stage_3_Handover.md) for complete implementation,
-security, privacy, testing, deployment, and handover details.
-
 ## Planned MVP
 
 Future stages may interpret extracted notice text, identify deadlines and
