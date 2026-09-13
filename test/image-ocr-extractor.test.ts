@@ -4,8 +4,10 @@ import { readFile } from "node:fs/promises";
 const recognize = vi.fn();
 const terminate = vi.fn();
 
-vi.mock("tesseract.js", () => ({
-  createWorker: vi.fn(async () => ({ recognize, terminate })),
+vi.mock("tesseract.js/dist/tesseract.min.js", () => ({
+  default: {
+    createWorker: vi.fn(async () => ({ recognize, terminate })),
+  },
 }));
 
 import { extractImageText } from "@/lib/ingestion/image-ocr-extractor";
@@ -25,10 +27,12 @@ describe("extractImageText", () => {
   it("returns OCR text, image provenance, and Tesseract confidence", async () => {
     recognize.mockResolvedValueOnce({ data: { text: "  NOTICE 42  ", confidence: 97.4 } });
 
-    const image = Buffer.from(
+    const image = new Blob([
+      Buffer.from(
       (await readFile("test/fixtures/notice-42.png.base64", "utf8")).trim(),
       "base64",
-    );
+      ),
+    ]);
     const result = await extractImageText(image, document);
 
     expect(result).toMatchObject({
@@ -49,7 +53,7 @@ describe("extractImageText", () => {
   it("returns empty when Tesseract recognizes no text", async () => {
     recognize.mockResolvedValueOnce({ data: { text: "   ", confidence: 0 } });
 
-    await expect(extractImageText(new Uint8Array([137, 80, 78, 71]), document)).resolves.toMatchObject({
+    await expect(extractImageText("notice.png", document)).resolves.toMatchObject({
       status: "empty",
       extractedText: "",
       sourceSegments: [],
@@ -59,7 +63,7 @@ describe("extractImageText", () => {
   it("returns ocr_failed and terminates the worker when recognition rejects", async () => {
     recognize.mockRejectedValueOnce(new Error("OCR worker failed"));
 
-    await expect(extractImageText(new Uint8Array([137, 80, 78, 71]), document)).resolves.toMatchObject({
+    await expect(extractImageText("notice.png", document)).resolves.toMatchObject({
       status: "failed",
       extractedText: "",
       sourceSegments: [],

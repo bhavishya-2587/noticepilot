@@ -1,62 +1,37 @@
 # NoticePilot
 
-NoticePilot is an AI-powered academic notice intelligence system.
-
-It turns unstructured academic notices into clear, actionable information while preserving evidence from the original notice.
-
-## Problem
-
-College students often receive important academic information through notices that can be long, inconsistently formatted, or difficult to interpret quickly.
-
-Important deadlines, requirements, events, and actions can be buried inside the document.
-
-NoticePilot aims to reduce the effort required to find and act on this information.
+NoticePilot is an academic notice intelligence system for turning unstructured
+academic notices into clear, actionable information while preserving source
+evidence.
 
 ## Project Status
 
 NoticePilot is being developed for GatewayHacks 2026.
 
-The project is currently in the foundation stage. The Next.js application, TypeScript setup, Git workflow, environment-variable convention, and Vercel deployment pipeline are established.
+Stage 3, Notice Ingestion, is complete. The application validates PDF, JPG,
+JPEG, and PNG uploads, extracts PDF text on the server, and performs image OCR
+in the browser. Stage 4 AI interpretation is intentionally not implemented.
 
-The notice ingestion and AI processing pipeline are intentionally not implemented yet.
-
-## Planned MVP
-
-The MVP will:
-
-- Accept an academic notice as input
-- Extract and interpret its contents
-- Generate a short, clear title
-- Identify who the notice is for
-- Summarize important information
-- Extract dates, times, venues, deadlines, and events
-- Identify the issuer or relevant notice details
-- Show missing information explicitly as `Not specified`
-- Preserve references to the original notice
-- Indicate uncertainty when information is ambiguous
-- Present the result through a clean, student-focused interface
-
-The original notice remains the source of truth.
-
-AI-generated information will be treated as an interpretation of that source and will be validated before being used by the application.
-
-## Current Architecture
-
-The planned application flow is:
+## Stage 3 Architecture
 
 ```text
 Student
    ↓
 Next.js Frontend
-   ↓
-Backend / API
-   ↓
-Text Extraction
-   ↓
-AI Interpretation
-   ↓
-Structured JSON
-   ↓
-Validation
-   ↓
-Student UI
+   ├─ PDF → /api/notices/ingest → unpdf → normalized result
+   └─ JPG/JPEG/PNG → browser Tesseract.js → normalized result
+```
+
+Uploads are limited to 20 MB. Notices are processed in memory and are not
+persisted. Browser OCR keeps images in the browser; the server receives PDF
+uploads only. PDF source segments identify page numbers. Image OCR identifies
+the source as `image` and preserves confidence when Tesseract provides it.
+
+See [Stage_3_Handover.md](./Stage_3_Handover.md) for complete implementation,
+security, privacy, testing, deployment, and handover details.
+
+## Planned MVP
+
+Future stages may interpret extracted notice text, identify deadlines and
+actions, and present structured information. The original notice remains the
+source of truth. AI interpretation is outside Stage 3.

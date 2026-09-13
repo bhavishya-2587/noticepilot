@@ -82,7 +82,7 @@ export function NoticeUpload({
   const [isDragging, setIsDragging] = useState(false);
 
   const isSubmitting = submissionState.status === "processing";
-  const isDisabled = isSubmitting || submissionState.status === "success";
+  const isDisabled = isSubmitting;
 
   function selectFile(file: File | null | undefined) {
     if (!file) {

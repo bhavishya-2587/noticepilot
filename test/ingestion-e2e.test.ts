@@ -1,6 +1,3 @@
-import { Buffer } from "node:buffer";
-import { readFile } from "node:fs/promises";
-
 import { describe, expect, it } from "vitest";
 
 import { ingestNotice } from "@/lib/ingestion/ingest-notice";
@@ -57,42 +54,5 @@ describe("notice ingestion end-to-end", () => {
         pageNumber: 2,
       },
     });
-  });
-
-  it("runs a real image through the OCR extractor", async () => {
-    const base64 = await readFile(
-      new URL("./fixtures/notice-42.png.base64", import.meta.url),
-      "utf8",
-    );
-
-    const image = Buffer.from(base64.trim(), "base64");
-
-    const file = createUploadFile(
-      image,
-      "notice-42.png",
-      "image/png",
-    );
-
-    const result = await ingestNotice(file);
-
-    if (result.status === "failed") {
-      throw new Error(
-        `Expected image ingestion to succeed or be empty: ${result.error.message}`,
-      );
-    }
-
-    expect(result.document.originalFilename).toBe("notice-42.png");
-    expect(result.document.mediaType).toBe("image/png");
-
-    if (result.status === "success") {
-      expect(result.extractedText.length).toBeGreaterThan(0);
-      expect(result.sourceSegments).toHaveLength(1);
-      expect(result.sourceSegments[0]?.sourceLocation).toEqual({
-        sourceType: "image",
-      });
-      expect(result.sourceSegments[0]?.ocrConfidence).toEqual(
-        expect.any(Number),
-      );
-    }
   });
 });
