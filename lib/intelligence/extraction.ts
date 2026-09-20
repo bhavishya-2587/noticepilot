@@ -12,6 +12,7 @@ import {
   type IntelligenceResult,
   validateIntelligenceResult,
 } from "./schema";
+import { verifyIntelligenceEvidence } from "./evidence";
 
 export const MAX_INTELLIGENCE_INPUT_CHARS = 120_000;
 
@@ -55,7 +56,7 @@ function buildNoticeInput(
     return [
       `SEGMENT_ID: ${segment.segmentId}`,
       `SOURCE_LOCATION: ${location}`,
-      `TEXT:`,
+      "TEXT:",
       segment.text,
     ].join("\n");
   });
@@ -131,7 +132,12 @@ export async function extractNoticeIntelligence(
       );
     }
 
-    return parseAndValidateResponse(response.text);
+    const intelligenceResult = parseAndValidateResponse(response.text);
+
+    return verifyIntelligenceEvidence(
+      intelligenceResult,
+      ingestionResult,
+    );
   } catch (error) {
     if (
       error instanceof IntelligenceInputError ||
