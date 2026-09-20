@@ -13,34 +13,26 @@ import {
   validateIntelligenceResult,
 } from "./schema";
 import { verifyIntelligenceEvidence } from "./evidence";
+import {
+  IntelligenceFailure,
+  isIntelligenceFailure,
+} from "./errors";
 
 export const MAX_INTELLIGENCE_INPUT_CHARS = 120_000;
-
-export class IntelligenceInputError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "IntelligenceInputError";
-  }
-}
-
-export class IntelligenceExtractionError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "IntelligenceExtractionError";
-  }
-}
 
 function buildNoticeInput(
   ingestionResult: NormalizedIngestionResult,
 ): string {
   if (ingestionResult.status !== "success") {
-    throw new IntelligenceInputError(
+    throw new IntelligenceFailure(
+      "input_invalid",
       `Intelligence extraction requires successful ingestion. Received status "${ingestionResult.status}".`,
     );
   }
 
   if (ingestionResult.sourceSegments.length === 0) {
-    throw new IntelligenceInputError(
+    throw new IntelligenceFailure(
+      "input_invalid",
       "Intelligence extraction requires at least one source segment.",
     );
   }
@@ -71,7 +63,8 @@ function buildNoticeInput(
   ].join("\n\n");
 
   if (input.length > MAX_INTELLIGENCE_INPUT_CHARS) {
-    throw new IntelligenceInputError(
+    throw new IntelligenceFailure(
+      "input_invalid",
       `Notice is too large for intelligence processing. Maximum supported extracted input is ${MAX_INTELLIGENCE_INPUT_CHARS} characters.`,
     );
   }
@@ -79,22 +72,32 @@ function buildNoticeInput(
   return input;
 }
 
-function parseAndValidateResponse(responseText: string): IntelligenceResult {
+function parseAndValidateResponse(
+  responseText: string,
+): IntelligenceResult {
   let parsed: unknown;
 
   try {
     parsed = JSON.parse(responseText);
-  } catch {
-    throw new IntelligenceExtractionError(
+  } catch (error) {
+    throw new IntelligenceFailure(
+      "output_invalid",
       "Gemini returned a response that was not valid JSON.",
+      {
+        cause: error,
+      },
     );
   }
 
   const validation = validateIntelligenceResult(parsed);
 
   if (!validation.success) {
-    throw new IntelligenceExtractionError(
-      `Gemini returned JSON that did not match the NoticePilot intelligence contract: ${validation.error.message}`,
+    throw new IntelligenceFailure(
+      "output_invalid",
+      "Gemini returned JSON that did not match the NoticePilot intelligence contract.",
+      {
+        cause: validation.error,
+      },
     );
   }
 
@@ -106,8 +109,10 @@ export async function extractNoticeIntelligence(
 ): Promise<IntelligenceResult> {
   const noticeInput = buildNoticeInput(ingestionResult);
 
+  let response;
+
   try {
-    const response = await geminiClient.models.generateContent({
+    response = await geminiClient.models.generateContent({
       model: GEMINI_MODEL,
       contents: [
         {
@@ -125,29 +130,45 @@ export async function extractNoticeIntelligence(
         temperature: 0,
       },
     });
-
-    if (!response.text) {
-      throw new IntelligenceExtractionError(
-        "Gemini returned an empty response.",
-      );
+  } catch (error) {
+    if (isIntelligenceFailure(error)) {
+      throw error;
     }
 
-    const intelligenceResult = parseAndValidateResponse(response.text);
+    throw new IntelligenceFailure(
+      "provider_unavailable",
+      "Gemini intelligence extraction failed at the provider boundary.",
+      {
+        cause: error,
+      },
+    );
+  }
 
+  if (!response.text) {
+    throw new IntelligenceFailure(
+      "output_invalid",
+      "Gemini returned an empty response.",
+    );
+  }
+
+  const intelligenceResult = parseAndValidateResponse(response.text);
+
+  try {
     return verifyIntelligenceEvidence(
       intelligenceResult,
       ingestionResult,
     );
   } catch (error) {
-    if (
-      error instanceof IntelligenceInputError ||
-      error instanceof IntelligenceExtractionError
-    ) {
+    if (isIntelligenceFailure(error)) {
       throw error;
     }
 
-    throw new IntelligenceExtractionError(
-      "Gemini intelligence extraction failed.",
+    throw new IntelligenceFailure(
+      "evidence_invalid",
+      "Gemini evidence could not be verified against the original notice.",
+      {
+        cause: error,
+      },
     );
   }
 }
