@@ -4,8 +4,8 @@ import { defineConfig } from "vitest/config";
 const projectRoot = new URL("../", import.meta.url).pathname;
 const environment = loadEnv("test", projectRoot, "");
 
-if (environment.GEMINI_API_KEY) {
-  process.env.GEMINI_API_KEY = environment.GEMINI_API_KEY;
+if (environment.GROQ_API_KEY) {
+  process.env.GROQ_API_KEY = environment.GROQ_API_KEY;
 }
 
 export default defineConfig({

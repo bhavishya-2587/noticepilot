@@ -3,11 +3,11 @@ import "server-only";
 import type { NormalizedIngestionResult } from "@/lib/ingestion/types";
 
 import {
-  GEMINI_MODEL,
-  geminiClient,
+  callGroqForJson,
   intelligenceResponseSchema,
   INTELLIGENCE_SYSTEM_INSTRUCTIONS,
-} from "./gemini";
+} from "./groq";
+
 import {
   type IntelligenceResult,
   validateIntelligenceResult,
@@ -109,27 +109,12 @@ export async function extractNoticeIntelligence(
 ): Promise<IntelligenceResult> {
   const noticeInput = buildNoticeInput(ingestionResult);
 
-  let response;
+  let responseText: string;
 
   try {
-    response = await geminiClient.models.generateContent({
-      model: GEMINI_MODEL,
-      contents: [
-        {
-          role: "user",
-          parts: [
-            {
-              text: `${INTELLIGENCE_SYSTEM_INSTRUCTIONS}\n\nNOTICE INPUT:\n${noticeInput}`,
-            },
-          ],
-        },
-      ],
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: intelligenceResponseSchema,
-        temperature: 0,
-      },
-    });
+    const schemaDescription = JSON.stringify(intelligenceResponseSchema);
+    const prompt = `${INTELLIGENCE_SYSTEM_INSTRUCTIONS}\n\nRespond with a single JSON object that matches this JSON Schema exactly:\n${schemaDescription}\n\nNOTICE INPUT:\n${noticeInput}`;
+    responseText = await callGroqForJson(prompt);
   } catch (error) {
     if (isIntelligenceFailure(error)) {
       throw error;
@@ -137,21 +122,19 @@ export async function extractNoticeIntelligence(
 
     throw new IntelligenceFailure(
       "provider_unavailable",
-      "Gemini intelligence extraction failed at the provider boundary.",
-      {
-        cause: error,
-      },
+      "Groq intelligence extraction failed at the provider boundary.",
+      { cause: error },
     );
   }
 
-  if (!response.text) {
+  if (!responseText) {
     throw new IntelligenceFailure(
       "output_invalid",
-      "Gemini returned an empty response.",
+      "Groq returned an empty response.",
     );
   }
 
-  const intelligenceResult = parseAndValidateResponse(response.text);
+  const intelligenceResult = parseAndValidateResponse(responseText);
 
   try {
     return verifyIntelligenceEvidence(

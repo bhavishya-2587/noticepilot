@@ -5,9 +5,6 @@ import { describe, expect, it } from "vitest";
 
 import { extractPdfText } from "@/lib/ingestion/pdf-extractor";
 import type { DocumentIdentity } from "@/lib/ingestion/types";
-import {
-  intelligenceResponseSchema,
-} from "@/lib/intelligence/gemini";
 import { extractNoticeIntelligence } from "@/lib/intelligence/extraction";
 
 const EVALUATION_NOTICE_PATH = path.join(
@@ -16,47 +13,6 @@ const EVALUATION_NOTICE_PATH = path.join(
   "notices",
   "01-internal-assessment.pdf",
 );
-
-const UNSUPPORTED_GEMINI_SCHEMA_KEYS = new Set([
-  "minLength",
-  "maxLength",
-  "pattern",
-  "minProperties",
-  "maxProperties",
-  "uniqueItems",
-  "exclusiveMinimum",
-  "exclusiveMaximum",
-  "multipleOf",
-  "const",
-]);
-
-function findUnsupportedSchemaKeys(
-  value: unknown,
-  path = "$",
-): string[] {
-  if (Array.isArray(value)) {
-    return value.flatMap((item, index) =>
-      findUnsupportedSchemaKeys(item, `${path}[${index}]`),
-    );
-  }
-
-  if (value === null || typeof value !== "object") {
-    return [];
-  }
-
-  const object = value as Record<string, unknown>;
-  const findings: string[] = [];
-
-  for (const [key, child] of Object.entries(object)) {
-    if (UNSUPPORTED_GEMINI_SCHEMA_KEYS.has(key)) {
-      findings.push(`${path}.${key}`);
-    }
-
-    findings.push(...findUnsupportedSchemaKeys(child, `${path}.${key}`));
-  }
-
-  return findings;
-}
 
 async function loadEvaluationNotice() {
   const contents = await readFile(EVALUATION_NOTICE_PATH);
@@ -78,14 +34,6 @@ async function loadEvaluationNotice() {
 }
 
 describe("real intelligence evaluation", () => {
-  it("produces a Gemini-compatible structured-output schema", () => {
-    const unsupportedKeys = findUnsupportedSchemaKeys(
-      intelligenceResponseSchema,
-    );
-
-    expect(unsupportedKeys).toEqual([]);
-  });
-
   it(
     "extracts and verifies intelligence from the internal assessment notice",
     async () => {
@@ -125,7 +73,7 @@ describe("real intelligence evaluation", () => {
       }
 
       console.log(
-        "\nREAL GEMINI EVALUATION RESULT:\n",
+        "\nREAL GROQ EVALUATION RESULT:\n",
         JSON.stringify(intelligenceResult, null, 2),
       );
     },
