@@ -1,20 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { generateContentMock } = vi.hoisted(() => {
-  process.env.GEMINI_API_KEY = "test-key";
+const { fetchMock } = vi.hoisted(() => {
+  process.env.GROQ_API_KEY = "test-key";
 
   return {
-    generateContentMock: vi.fn(),
+    fetchMock: vi.fn(),
   };
 });
 
-vi.mock("@google/genai", () => ({
-  GoogleGenAI: class {
-    models = {
-      generateContent: generateContentMock,
-    };
-  },
-}));
+vi.stubGlobal("fetch", fetchMock);
 
 import type { NormalizedIngestionResult } from "@/lib/ingestion/types";
 
@@ -137,15 +131,21 @@ function createValidResult() {
   };
 }
 
-function mockGeminiResponse(value: unknown): void {
-  generateContentMock.mockResolvedValueOnce({
-    text: JSON.stringify(value),
+function mockGroqResponse(value: unknown): void {
+  fetchMock.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      choices: [{ message: { content: JSON.stringify(value) } }],
+    }),
   });
 }
 
-function mockRawGeminiResponse(text: string): void {
-  generateContentMock.mockResolvedValueOnce({
-    text,
+function mockRawGroqResponse(text: string): void {
+  fetchMock.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      choices: [{ message: { content: text } }],
+    }),
   });
 }
 
@@ -159,23 +159,23 @@ function expectIntelligenceFailure(
 
 describe("extractNoticeIntelligence", () => {
   beforeEach(() => {
-    generateContentMock.mockReset();
+    fetchMock.mockReset();
   });
 
   it("accepts a valid intelligence result with valid evidence", async () => {
     const result = createValidResult();
 
-    mockGeminiResponse(result);
+    mockGroqResponse(result);
 
     await expect(
       extractNoticeIntelligence(successfulIngestion),
     ).resolves.toEqual(result);
 
-    expect(generateContentMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("returns output_invalid when Gemini returns malformed JSON", async () => {
-    mockRawGeminiResponse("{ invalid json");
+  it("returns output_invalid when Groq returns malformed JSON", async () => {
+    mockRawGroqResponse("{ invalid json");
 
     await expect(
       extractNoticeIntelligence(successfulIngestion),
@@ -185,8 +185,8 @@ describe("extractNoticeIntelligence", () => {
     });
   });
 
-  it("returns output_invalid when Gemini returns schema-invalid JSON", async () => {
-    mockGeminiResponse({
+  it("returns output_invalid when Groq returns schema-invalid JSON", async () => {
+    mockGroqResponse({
       notice: {
         title: "Assessment",
         audience: {
@@ -247,7 +247,7 @@ describe("extractNoticeIntelligence", () => {
       },
     ];
 
-    mockGeminiResponse(result);
+    mockGroqResponse(result);
 
     await expect(
       extractNoticeIntelligence(successfulIngestion),
@@ -267,7 +267,7 @@ describe("extractNoticeIntelligence", () => {
       },
     ];
 
-    mockGeminiResponse(result);
+    mockGroqResponse(result);
 
     await expect(
       extractNoticeIntelligence(successfulIngestion),
@@ -288,7 +288,7 @@ describe("extractNoticeIntelligence", () => {
       },
     ];
 
-    mockGeminiResponse(result);
+    mockGroqResponse(result);
 
     await expect(
       extractNoticeIntelligence(successfulIngestion),
@@ -314,7 +314,7 @@ describe("extractNoticeIntelligence", () => {
       return true;
     });
 
-    expect(generateContentMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("returns input_invalid when ingestion contains no source segments", async () => {
@@ -335,7 +335,7 @@ describe("extractNoticeIntelligence", () => {
       return true;
     });
 
-    expect(generateContentMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("returns input_invalid when extracted notice input exceeds the size limit", async () => {
@@ -367,12 +367,12 @@ describe("extractNoticeIntelligence", () => {
       return true;
     });
 
-    expect(generateContentMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("returns provider_unavailable when the Gemini provider fails", async () => {
-    generateContentMock.mockRejectedValueOnce(
-      new Error("Simulated Gemini provider failure"),
+  it("returns provider_unavailable when the Groq provider fails", async () => {
+    fetchMock.mockRejectedValueOnce(
+      new Error("Simulated Groq provider failure"),
     );
 
     await expect(
@@ -383,9 +383,10 @@ describe("extractNoticeIntelligence", () => {
     });
   });
 
-  it("returns output_invalid when Gemini returns an empty response", async () => {
-    generateContentMock.mockResolvedValueOnce({
-      text: "",
+  it("returns output_invalid when Groq returns an empty response", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: "" } }] }),
     });
 
     await expect(
