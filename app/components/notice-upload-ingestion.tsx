@@ -2,6 +2,10 @@
 
 import { useRef, useState } from "react";
 
+import {
+  validateIntelligenceResult,
+  type IntelligenceResult,
+} from "@/lib/intelligence/schema";
 import type { NoticeIngestionResponse } from "@/lib/ingestion/ingestion-response";
 import { validateUpload } from "@/lib/ingestion/upload-validator";
 import type {
@@ -10,13 +14,21 @@ import type {
   SourceLocation,
 } from "@/lib/ingestion/types";
 
+import { IntelligenceResultSkeleton } from "./intelligence-result-skeleton";
+import { IntelligenceResultView } from "./intelligence-result-view";
 import {
   NoticeUpload,
   type NoticeUploadSubmissionState,
 } from "./notice-upload";
 
-function isIngestionResponse(value: unknown): value is NoticeIngestionResponse {
-  return typeof value === "object" && value !== null && ("result" in value || "error" in value);
+function isIngestionResponse(
+  value: unknown,
+): value is NoticeIngestionResponse {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    ("result" in value || "error" in value)
+  );
 }
 
 function sourceLabel(sourceLocation: SourceLocation): string {
@@ -32,14 +44,67 @@ function sourceLabel(sourceLocation: SourceLocation): string {
   }
 }
 
-function ResultPreview({ result }: { result: NormalizedIngestionResult }) {
+async function fetchIntelligence(
+  result: NormalizedIngestionResult,
+): Promise<IntelligenceResult | null> {
+  try {
+    const response = await fetch("/api/notices/intelligence", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ result }),
+    });
+
+    const payload: unknown = await response.json();
+
+    if (
+      !response.ok ||
+      typeof payload !== "object" ||
+      payload === null ||
+      !("result" in payload)
+    ) {
+      return null;
+    }
+
+    const validation = validateIntelligenceResult(payload.result);
+
+    return validation.success ? validation.data : null;
+  } catch {
+    return null;
+  }
+}
+
+function ResultPreview({
+  result,
+}: {
+  result: NormalizedIngestionResult;
+}) {
   if (result.status === "empty") {
     return (
-      <section className="mt-6 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-900" aria-live="polite">
-        <h2 className="text-xl font-semibold">No readable text found</h2>
-        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
-          The notice was processed, but no extractable text was found.
-        </p>
+      <section
+        className="relative mt-6 overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#07111f] p-6 text-white shadow-xl shadow-cyan-950/20"
+        aria-live="polite"
+      >
+        <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-cyan-400/10 blur-3xl" />
+
+        <div className="relative">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-200/20 bg-cyan-200/10 text-cyan-200">
+              ?
+            </span>
+
+            <div>
+              <h2 className="text-xl font-semibold">
+                No readable text found
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-300">
+                The notice was processed, but no extractable text was found.
+              </p>
+            </div>
+          </div>
+        </div>
       </section>
     );
   }
@@ -49,41 +114,90 @@ function ResultPreview({ result }: { result: NormalizedIngestionResult }) {
   }
 
   return (
-    <section className="mt-6 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-900" aria-live="polite">
-      <h2 className="text-xl font-semibold">Extracted text</h2>
-      <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
-        {result.document.originalFilename} · {result.document.mediaType}
-      </p>
-      <pre className="mt-4 whitespace-pre-wrap break-words rounded-lg bg-zinc-100 p-4 text-sm dark:bg-zinc-800">
-        {result.extractedText}
-      </pre>
-      {result.sourceSegments.length > 0 ? (
-        <div className="mt-4">
-          <h3 className="font-medium">Sources</h3>
-          <ul className="mt-2 list-inside list-disc text-sm text-zinc-600 dark:text-zinc-300">
-            {result.sourceSegments.map((segment) => (
-              <li key={segment.segmentId}>{sourceLabel(segment.sourceLocation)}</li>
-            ))}
-          </ul>
+    <section
+      className="relative mt-6 overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#07111f] p-6 text-white shadow-xl shadow-cyan-950/20"
+      aria-live="polite"
+    >
+      <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-cyan-400/10 blur-3xl" />
+
+      <div className="relative">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300/70">
+              Source text
+            </p>
+
+            <h2 className="mt-2 text-xl font-semibold">
+              Extracted text
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-400">
+              {result.document.originalFilename} ·{" "}
+              {result.document.mediaType}
+            </p>
+          </div>
+
+          <span className="rounded-full border border-emerald-200/20 bg-emerald-300/10 px-3 py-1.5 text-xs font-medium text-emerald-100">
+            Text extracted
+          </span>
         </div>
-      ) : null}
+
+        <pre className="mt-5 max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-slate-300">
+          {result.extractedText}
+        </pre>
+
+        {result.sourceSegments.length > 0 ? (
+          <div className="mt-5">
+            <h3 className="text-sm font-semibold text-cyan-100">
+              Source locations
+            </h3>
+
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {result.sourceSegments.map((segment) => (
+                <li
+                  key={segment.segmentId}
+                  className="rounded-full border border-cyan-200/15 bg-cyan-200/10 px-3 py-1.5 text-xs text-cyan-100/80"
+                >
+                  {sourceLabel(segment.sourceLocation)}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+      </div>
     </section>
   );
 }
 
 export function NoticeUploadIngestion() {
-  const [submissionState, setSubmissionState] = useState<NoticeUploadSubmissionState>({ status: "idle" });
-  const [result, setResult] = useState<NormalizedIngestionResult | null>(null);
+  const [submissionState, setSubmissionState] =
+    useState<NoticeUploadSubmissionState>({
+      status: "idle",
+    });
+
+  const [result, setResult] =
+    useState<NormalizedIngestionResult | null>(null);
+
+  const [intelligence, setIntelligence] =
+    useState<IntelligenceResult | null>(null);
+
+  const [intelligenceStatus, setIntelligenceStatus] = useState<
+    "idle" | "loading" | "error"
+  >("idle");
+
   const isSubmittingRef = useRef(false);
 
   async function onContinue(file: File) {
-    if (isSubmittingRef.current) {
-      return;
-    }
+    if (isSubmittingRef.current) return;
 
     isSubmittingRef.current = true;
     setResult(null);
-    setSubmissionState({ status: "processing", message: "Processing your notice…" });
+    setIntelligence(null);
+    setIntelligenceStatus("idle");
+    setSubmissionState({
+      status: "processing",
+      message: "Processing your notice…",
+    });
 
     try {
       const validation = validateUpload(file);
@@ -92,7 +206,8 @@ export function NoticeUploadIngestion() {
         setSubmissionState({
           status: "error",
           message:
-            validation.errors[0]?.message ?? "The file could not be processed.",
+            validation.errors[0]?.message ??
+            "The file could not be processed.",
         });
         return;
       }
@@ -101,14 +216,19 @@ export function NoticeUploadIngestion() {
         const { extractImageText } = await import(
           "@/lib/ingestion/image-ocr-extractor"
         );
+
         const document: DocumentIdentity = {
           documentId: crypto.randomUUID(),
           originalFilename: file.name,
           mediaType: validation.mediaType,
         };
+
         const imageResult = await extractImageText(file, document);
 
-        if (imageResult.status === "success" || imageResult.status === "empty") {
+        if (
+          imageResult.status === "success" ||
+          imageResult.status === "empty"
+        ) {
           setResult(imageResult);
           setSubmissionState({
             status: "success",
@@ -117,15 +237,38 @@ export function NoticeUploadIngestion() {
                 ? "Text extracted successfully."
                 : "Notice processed.",
           });
+
+          if (imageResult.status === "success") {
+            setIntelligenceStatus("loading");
+
+            const intelligenceResult =
+              await fetchIntelligence(imageResult);
+
+            if (intelligenceResult) {
+              setIntelligence(intelligenceResult);
+              setIntelligenceStatus("idle");
+            } else {
+              setIntelligenceStatus("error");
+            }
+          }
         } else {
-          setSubmissionState({ status: "error", message: imageResult.error.message });
+          setSubmissionState({
+            status: "error",
+            message: imageResult.error.message,
+          });
         }
+
         return;
       }
 
       const formData = new FormData();
       formData.set("file", file);
-      const response = await fetch("/api/notices/ingest", { method: "POST", body: formData });
+
+      const response = await fetch("/api/notices/ingest", {
+        method: "POST",
+        body: formData,
+      });
+
       const payload: unknown = await response.json();
 
       if (!isIngestionResponse(payload)) {
@@ -135,21 +278,47 @@ export function NoticeUploadIngestion() {
       if ("result" in payload) {
         if (payload.result.status === "success") {
           setResult(payload.result);
-          setSubmissionState({ status: "success", message: "Text extracted successfully." });
+          setSubmissionState({
+            status: "success",
+            message: "Text extracted successfully.",
+          });
+
+          setIntelligenceStatus("loading");
+
+          const intelligenceResult = await fetchIntelligence(
+            payload.result,
+          );
+
+          if (intelligenceResult) {
+            setIntelligence(intelligenceResult);
+            setIntelligenceStatus("idle");
+          } else {
+            setIntelligenceStatus("error");
+          }
+
           return;
         }
 
         if (payload.result.status === "empty") {
           setResult(payload.result);
-          setSubmissionState({ status: "success", message: "Notice processed." });
+          setSubmissionState({
+            status: "success",
+            message: "Notice processed.",
+          });
           return;
         }
 
-        setSubmissionState({ status: "error", message: payload.result.error.message });
+        setSubmissionState({
+          status: "error",
+          message: payload.result.error.message,
+        });
         return;
       }
 
-      setSubmissionState({ status: "error", message: payload.error.message });
+      setSubmissionState({
+        status: "error",
+        message: payload.error.message,
+      });
     } catch {
       setSubmissionState({
         status: "error",
@@ -162,8 +331,44 @@ export function NoticeUploadIngestion() {
 
   return (
     <>
-      <NoticeUpload onContinue={onContinue} submissionState={submissionState} />
+      <NoticeUpload
+        onContinue={onContinue}
+        submissionState={submissionState}
+      />
+
       {result ? <ResultPreview result={result} /> : null}
+
+      {intelligenceStatus === "loading" ? (
+        <IntelligenceResultSkeleton />
+      ) : null}
+
+      {intelligenceStatus === "error" ? (
+        <section
+          className="relative mt-6 overflow-hidden rounded-2xl border border-amber-200/30 bg-[#21170b] p-6 text-amber-100 shadow-xl shadow-amber-950/20"
+          aria-live="polite"
+        >
+          <div className="relative flex items-start gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-amber-200/20 bg-amber-300/10">
+              !
+            </span>
+
+            <div>
+              <h2 className="font-semibold">
+                Structure could not be created
+              </h2>
+
+              <p className="mt-1 text-sm leading-6 text-amber-100/75">
+                We extracted the text, but could not organize the notice.
+                You can try uploading it again.
+              </p>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {intelligence ? (
+        <IntelligenceResultView intelligence={intelligence} />
+      ) : null}
     </>
   );
 }
