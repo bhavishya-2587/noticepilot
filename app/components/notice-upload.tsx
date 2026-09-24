@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
   useRef,
   useState,
@@ -21,26 +22,23 @@ export type NoticeUploadSubmissionState =
   | { status: "error"; message: string };
 
 interface NoticeUploadProps {
-  /**
-   * Receives the validated browser File when the student chooses Continue.
-   * Task 13 can connect this callback from a client-side submission boundary.
-   */
   onContinue?: (file: File) => void;
-  /**
-   * Submission state is controlled by the future ingestion integration. Until
-   * then the component manages idle, selected, and client-validation states.
-   */
   submissionState?: NoticeUploadSubmissionState;
+  className?: string;
 }
 
-const ACCEPTED_FILE_TYPES = ".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png";
+const ACCEPTED_FILE_TYPES =
+  ".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png";
+
 const MAX_UPLOAD_SIZE_MB = MAX_UPLOAD_SIZE_BYTES / (1024 * 1024);
 
 function getExtension(filename: string): string {
   const filenameOnly = filename.split(/[\\/]/).pop() ?? "";
   const separator = filenameOnly.lastIndexOf(".");
 
-  return separator === -1 ? "" : filenameOnly.slice(separator + 1).toLowerCase();
+  return separator === -1
+    ? ""
+    : filenameOnly.slice(separator + 1).toLowerCase();
 }
 
 function formatFileSize(bytes: number): string {
@@ -58,9 +56,11 @@ function getClientValidationError(file: File): string | null {
 
   const mediaType = file.type.trim().toLowerCase();
   const extension = getExtension(file.name);
+
   const hasSupportedMediaType = SUPPORTED_UPLOAD_MEDIA_TYPES.includes(
     mediaType as (typeof SUPPORTED_UPLOAD_MEDIA_TYPES)[number],
   );
+
   const hasSupportedExtension = SUPPORTED_UPLOAD_FILE_EXTENSIONS.includes(
     extension as (typeof SUPPORTED_UPLOAD_FILE_EXTENSIONS)[number],
   );
@@ -75,6 +75,7 @@ function getClientValidationError(file: File): string | null {
 export function NoticeUpload({
   onContinue,
   submissionState = { status: "idle" },
+  className = "",
 }: NoticeUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -92,6 +93,7 @@ export function NoticeUpload({
     }
 
     const validationError = getClientValidationError(file);
+
     if (validationError) {
       setSelectedFile(null);
       setClientError(validationError);
@@ -109,6 +111,7 @@ export function NoticeUpload({
   function handleDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
     setIsDragging(false);
+
     if (!isDisabled) {
       selectFile(event.dataTransfer.files?.[0]);
     }
@@ -131,6 +134,7 @@ export function NoticeUpload({
   function removeFile() {
     setSelectedFile(null);
     setClientError(null);
+
     if (inputRef.current) {
       inputRef.current.value = "";
     }
@@ -145,13 +149,46 @@ export function NoticeUpload({
     onContinue?.(selectedFile);
   }
 
-  const displayedError = clientError ?? (submissionState.status === "error" ? submissionState.message : null);
+  const displayedError =
+    clientError ??
+    (submissionState.status === "error"
+      ? submissionState.message
+      : null);
 
   return (
-    <section aria-labelledby="upload-heading" className="w-full max-w-xl rounded-xl border border-black/10 bg-white p-6 shadow-sm dark:border-white/15 dark:bg-zinc-900">
-      <h2 id="upload-heading" className="text-xl font-semibold">Upload a notice</h2>
-      <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
-        Choose a PDF, JPG, JPEG, or PNG notice. Files can be up to {MAX_UPLOAD_SIZE_MB} MB.
+    <section
+      aria-labelledby="upload-heading"
+      className={`w-full rounded-3xl border border-cyan-200/15 bg-gradient-to-br from-[#0b1b2d] via-[#071321] to-[#050c17] p-5 shadow-2xl shadow-cyan-950/30 sm:p-6 ${className}`}
+    >
+      <div className="flex items-start gap-3">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-200/25 bg-[#0b1b2d]">
+          <Image
+            src="/upload-icon.png"
+            alt=""
+            width={64}
+            height={64}
+            className="h-14 w-14 object-contain"
+            aria-hidden="true"
+          />
+        </div>
+
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300/70">
+            Start here
+          </p>
+
+          <h2
+            id="upload-heading"
+            className="mt-1 text-xl font-semibold text-white"
+          >
+            Upload a notice
+          </h2>
+        </div>
+      </div>
+
+      <p className="mt-4 text-sm leading-6 text-slate-400">
+        Choose a PDF, JPG, JPEG, or PNG notice. Files can be up to{" "}
+        {MAX_UPLOAD_SIZE_MB} MB.
       </p>
 
       <input
@@ -175,45 +212,97 @@ export function NoticeUpload({
         onKeyDown={handleDropZoneKeyDown}
         onDragEnter={(event) => {
           event.preventDefault();
-          if (!isDisabled) setIsDragging(true);
+
+          if (!isDisabled) {
+            setIsDragging(true);
+          }
         }}
         onDragOver={(event) => event.preventDefault()}
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
-        className={`mt-5 cursor-pointer rounded-lg border-2 border-dashed p-6 text-center outline-offset-4 transition ${
+        className={`mt-5 cursor-pointer rounded-2xl border-2 border-dashed p-6 text-center outline-offset-4 transition ${
           isDragging
-            ? "border-blue-600 bg-blue-50 dark:border-blue-400 dark:bg-blue-950/30"
-            : "border-zinc-300 hover:border-zinc-500 dark:border-zinc-600 dark:hover:border-zinc-400"
+            ? "border-cyan-300 bg-cyan-300/10"
+            : "border-cyan-100/20 bg-black/10 hover:border-cyan-200/50 hover:bg-cyan-200/[0.04]"
         } ${isDisabled ? "cursor-not-allowed opacity-60" : ""}`}
       >
-        <p className="font-medium">Drag and drop your notice here</p>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">or click to browse your device</p>
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-200/20 bg-cyan-200/10 text-2xl text-cyan-200">
+          ↑
+        </div>
+
+        <p className="mt-4 font-medium text-white">
+          Drag and drop your notice here
+        </p>
+
+        <p className="mt-1 text-sm text-slate-400">
+          or click to browse your device
+        </p>
       </div>
-      <p id="upload-help" className="mt-3 text-xs text-zinc-600 dark:text-zinc-300">
-        Accepted formats: PDF, JPG/JPEG, PNG. Maximum size: {MAX_UPLOAD_SIZE_MB} MB.
+
+      <p
+        id="upload-help"
+        className="mt-3 text-xs leading-5 text-slate-500"
+      >
+        Accepted formats: PDF, JPG/JPEG, PNG. Maximum size:{" "}
+        {MAX_UPLOAD_SIZE_MB} MB.
       </p>
 
       {selectedFile ? (
-        <div className="mt-5 rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
-          <p className="break-words font-medium" title={selectedFile.name}>{selectedFile.name}</p>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
-            {formatFileSize(selectedFile.size)} · {selectedFile.type || "Unknown file type"}
+        <div className="mt-5 rounded-2xl border border-cyan-200/15 bg-white/[0.05] p-4">
+          <p
+            className="break-words font-medium text-white"
+            title={selectedFile.name}
+          >
+            {selectedFile.name}
           </p>
-          <button type="button" className="mt-3 text-sm font-medium underline underline-offset-4" onClick={removeFile} disabled={isDisabled}>
+
+          <p className="mt-1 text-sm text-slate-400">
+            {formatFileSize(selectedFile.size)} ·{" "}
+            {selectedFile.type || "Unknown file type"}
+          </p>
+
+          <button
+            type="button"
+            className="mt-3 text-sm font-medium text-cyan-200 underline underline-offset-4 transition hover:text-white"
+            onClick={removeFile}
+            disabled={isDisabled}
+          >
             Remove file
           </button>
         </div>
       ) : null}
 
-      <div id="upload-feedback" className="mt-4" aria-live="polite">
-        {displayedError ? <p role="alert" className="text-sm font-medium text-red-700 dark:text-red-300">{displayedError}</p> : null}
-        {submissionState.status === "processing" ? <p className="text-sm font-medium">Preparing your notice…</p> : null}
-        {submissionState.status === "success" ? <p className="text-sm font-medium">{submissionState.message ?? "Notice received successfully."}</p> : null}
+      <div
+        id="upload-feedback"
+        className="mt-4"
+        aria-live="polite"
+      >
+        {displayedError ? (
+          <p
+            role="alert"
+            className="text-sm font-medium text-red-300"
+          >
+            {displayedError}
+          </p>
+        ) : null}
+
+        {submissionState.status === "processing" ? (
+          <p className="text-sm font-medium text-cyan-100">
+            Preparing your notice…
+          </p>
+        ) : null}
+
+        {submissionState.status === "success" ? (
+          <p className="text-sm font-medium text-emerald-200">
+            {submissionState.message ??
+              "Notice received successfully."}
+          </p>
+        ) : null}
       </div>
 
       <button
         type="button"
-        className="mt-5 w-full rounded-lg bg-zinc-900 px-4 py-3 font-medium text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+        className="mt-5 w-full rounded-2xl border border-cyan-200/20 bg-cyan-200/10 px-4 py-3 font-medium text-cyan-50 transition hover:border-cyan-100/40 hover:bg-cyan-200/20 disabled:cursor-not-allowed disabled:opacity-60"
         disabled={isDisabled}
         onClick={continueWithFile}
       >

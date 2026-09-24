@@ -83,26 +83,22 @@ function ResultPreview({
   if (result.status === "empty") {
     return (
       <section
-        className="relative mt-6 overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#07111f] p-6 text-white shadow-xl shadow-cyan-950/20"
+        className="rounded-3xl border border-cyan-200/15 bg-gradient-to-br from-[#0b1b2d] to-[#050c17] p-5 text-white shadow-xl shadow-cyan-950/20"
         aria-live="polite"
       >
-        <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-cyan-400/10 blur-3xl" />
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-cyan-200/20 bg-cyan-200/10 text-cyan-200">
+            ?
+          </span>
 
-        <div className="relative">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-200/20 bg-cyan-200/10 text-cyan-200">
-              ?
-            </span>
+          <div>
+            <h2 className="text-xl font-semibold">
+              No readable text found
+            </h2>
 
-            <div>
-              <h2 className="text-xl font-semibold">
-                No readable text found
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-300">
-                The notice was processed, but no extractable text was found.
-              </p>
-            </div>
+            <p className="mt-1 text-sm text-slate-400">
+              The notice was processed, but no extractable text was found.
+            </p>
           </div>
         </div>
       </section>
@@ -114,35 +110,39 @@ function ResultPreview({
   }
 
   return (
-    <section
-      className="relative mt-6 overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#07111f] p-6 text-white shadow-xl shadow-cyan-950/20"
-      aria-live="polite"
+    <details
+      open
+      className="group rounded-3xl border border-cyan-200/15 bg-gradient-to-br from-[#0b1b2d] to-[#050c17] text-white shadow-xl shadow-cyan-950/20"
     >
-      <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-cyan-400/10 blur-3xl" />
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5 marker:hidden sm:p-6">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300/70">
+            Source text
+          </p>
 
-      <div className="relative">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300/70">
-              Source text
-            </p>
+          <h2 className="mt-2 text-xl font-semibold">
+            Extracted text
+          </h2>
 
-            <h2 className="mt-2 text-xl font-semibold">
-              Extracted text
-            </h2>
+          <p className="mt-1 text-sm text-slate-400">
+            {result.document.originalFilename} ·{" "}
+            {result.document.mediaType}
+          </p>
+        </div>
 
-            <p className="mt-1 text-sm text-slate-400">
-              {result.document.originalFilename} ·{" "}
-              {result.document.mediaType}
-            </p>
-          </div>
-
+        <div className="flex items-center gap-3">
           <span className="rounded-full border border-emerald-200/20 bg-emerald-300/10 px-3 py-1.5 text-xs font-medium text-emerald-100">
             Text extracted
           </span>
-        </div>
 
-        <pre className="mt-5 max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-slate-300">
+          <span className="text-xl text-cyan-200 transition-transform group-open:rotate-180">
+            ⌄
+          </span>
+        </div>
+      </summary>
+
+      <div className="border-t border-white/10 p-5 sm:p-6">
+        <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-2xl border border-white/10 bg-black/25 p-4 text-sm leading-6 text-slate-300">
           {result.extractedText}
         </pre>
 
@@ -165,7 +165,7 @@ function ResultPreview({
           </div>
         ) : null}
       </div>
-    </section>
+    </details>
   );
 }
 
@@ -186,6 +186,11 @@ export function NoticeUploadIngestion() {
   >("idle");
 
   const isSubmittingRef = useRef(false);
+
+  const hasWorkspace =
+    result !== null ||
+    intelligence !== null ||
+    intelligenceStatus !== "idle";
 
   async function onContinue(file: File) {
     if (isSubmittingRef.current) return;
@@ -330,45 +335,56 @@ export function NoticeUploadIngestion() {
   }
 
   return (
-    <>
-      <NoticeUpload
-        onContinue={onContinue}
-        submissionState={submissionState}
-      />
+    <div
+      className={
+        hasWorkspace
+          ? "grid items-start gap-6 lg:grid-cols-[minmax(250px,300px)_minmax(0,1fr)]"
+          : "mx-auto max-w-xl"
+      }
+    >
+      <aside className={hasWorkspace ? "lg:sticky lg:top-6" : ""}>
+        <NoticeUpload
+          onContinue={onContinue}
+          submissionState={submissionState}
+          className={hasWorkspace ? "max-w-none" : "mx-auto"}
+        />
+      </aside>
 
-      {result ? <ResultPreview result={result} /> : null}
+      <div className="min-w-0 space-y-6">
+        {intelligenceStatus === "loading" ? (
+          <IntelligenceResultSkeleton />
+        ) : null}
 
-      {intelligenceStatus === "loading" ? (
-        <IntelligenceResultSkeleton />
-      ) : null}
+        {intelligenceStatus === "error" ? (
+          <section
+            className="rounded-3xl border border-amber-200/30 bg-[#21170b] p-6 text-amber-100 shadow-xl shadow-amber-950/20"
+            aria-live="polite"
+          >
+            <div className="flex items-start gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-amber-200/20 bg-amber-300/10">
+                !
+              </span>
 
-      {intelligenceStatus === "error" ? (
-        <section
-          className="relative mt-6 overflow-hidden rounded-2xl border border-amber-200/30 bg-[#21170b] p-6 text-amber-100 shadow-xl shadow-amber-950/20"
-          aria-live="polite"
-        >
-          <div className="relative flex items-start gap-3">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-amber-200/20 bg-amber-300/10">
-              !
-            </span>
+              <div>
+                <h2 className="font-semibold">
+                  Structure could not be created
+                </h2>
 
-            <div>
-              <h2 className="font-semibold">
-                Structure could not be created
-              </h2>
-
-              <p className="mt-1 text-sm leading-6 text-amber-100/75">
-                We extracted the text, but could not organize the notice.
-                You can try uploading it again.
-              </p>
+                <p className="mt-1 text-sm leading-6 text-amber-100/75">
+                  We extracted the text, but could not organize the notice.
+                  You can try uploading it again.
+                </p>
+              </div>
             </div>
-          </div>
-        </section>
-      ) : null}
+          </section>
+        ) : null}
 
-      {intelligence ? (
-        <IntelligenceResultView intelligence={intelligence} />
-      ) : null}
-    </>
+        {intelligence ? (
+          <IntelligenceResultView intelligence={intelligence} />
+        ) : null}
+
+        {result ? <ResultPreview result={result} /> : null}
+      </div>
+    </div>
   );
 }
