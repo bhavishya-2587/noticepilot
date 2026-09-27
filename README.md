@@ -57,9 +57,9 @@ I'd rather be upfront here than have someone click around expecting something th
 - Evidence verification — extracted facts are checked against the real source text before being trusted
 - The notice content is explicitly treated as untrusted data during AI processing, not as instructions — so a notice can't try to hijack the extraction step
 - Automated tests covering ingestion, extraction, and evidence verification (56 passing)
+- Extraction results connection to the dashboard ui successfullly implemented and working
 
 **In progress:**
-- Wiring the extraction results into the actual dashboard UI — extraction and verification are fully working and testable via the API and test suite, but the polished "upload and see your deadlines" screen is still being connected
 - Calendar export (.ics)
 
 ---
