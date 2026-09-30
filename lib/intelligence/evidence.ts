@@ -105,3 +105,19 @@ export function verifyIntelligenceEvidence(
 
   return intelligenceResult;
 }
+
+export function keepVerifiedItems(
+  intelligenceResult: IntelligenceResult,
+  ingestionResult: NormalizedIngestionResult,
+): IntelligenceResult {
+  const sourceSegmentMap = buildSourceSegmentMap(ingestionResult);
+  const items = intelligenceResult.items.filter((item) => {
+    try {
+      verifyNoticeItemEvidence(item, sourceSegmentMap);
+      return true;
+    } catch {
+      return false;
+    }
+  });
+  return { ...intelligenceResult, items };
+}

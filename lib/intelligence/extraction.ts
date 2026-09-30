@@ -12,7 +12,7 @@ import {
   type IntelligenceResult,
   validateIntelligenceResult,
 } from "./schema";
-import { verifyIntelligenceEvidence } from "./evidence";
+import { keepVerifiedItems } from "./evidence";
 import {
   IntelligenceFailure,
   isIntelligenceFailure,
@@ -72,6 +72,24 @@ function buildNoticeInput(
   return input;
 }
 
+function trimTitle(parsed: unknown): unknown {
+  if (typeof parsed !== "object" || parsed === null) {
+    return parsed;
+  }
+
+  const notice = (parsed as { notice?: { title?: unknown } }).notice;
+
+  if (notice && typeof notice.title === "string") {
+    notice.title = notice.title
+      .trim()
+      .split(/\s+/)
+      .slice(0, 4)
+      .join(" ");
+  }
+
+  return parsed;
+}
+
 function parseAndValidateResponse(
   responseText: string,
 ): IntelligenceResult {
@@ -82,19 +100,19 @@ function parseAndValidateResponse(
   } catch (error) {
     throw new IntelligenceFailure(
       "output_invalid",
-      "Gemini returned a response that was not valid JSON.",
+      "Groq returned a response that was not valid JSON.",
       {
         cause: error,
       },
     );
   }
 
-  const validation = validateIntelligenceResult(parsed);
+  const validation = validateIntelligenceResult(trimTitle(parsed));
 
   if (!validation.success) {
     throw new IntelligenceFailure(
       "output_invalid",
-      "Gemini returned JSON that did not match the NoticePilot intelligence contract.",
+      "Groq returned JSON that did not match the NoticePilot intelligence contract.",
       {
         cause: validation.error,
       },
@@ -114,6 +132,7 @@ export async function extractNoticeIntelligence(
   try {
     const schemaDescription = JSON.stringify(intelligenceResponseSchema);
     const prompt = `${INTELLIGENCE_SYSTEM_INSTRUCTIONS}\n\nRespond with a single JSON object that matches this JSON Schema exactly:\n${schemaDescription}\n\nNOTICE INPUT:\n${noticeInput}`;
+
     responseText = await callGroqForJson(prompt);
   } catch (error) {
     if (isIntelligenceFailure(error)) {
@@ -137,10 +156,22 @@ export async function extractNoticeIntelligence(
   const intelligenceResult = parseAndValidateResponse(responseText);
 
   try {
-    return verifyIntelligenceEvidence(
+    const verified = keepVerifiedItems(
       intelligenceResult,
       ingestionResult,
     );
+
+    if (
+      intelligenceResult.items.length > 0 &&
+      verified.items.length === 0
+    ) {
+      throw new IntelligenceFailure(
+        "evidence_invalid",
+        "None of the extracted items could be verified against the notice.",
+      );
+    }
+
+    return verified;
   } catch (error) {
     if (isIntelligenceFailure(error)) {
       throw error;
@@ -148,7 +179,7 @@ export async function extractNoticeIntelligence(
 
     throw new IntelligenceFailure(
       "evidence_invalid",
-      "Gemini evidence could not be verified against the original notice.",
+      "Groq evidence could not be verified against the original notice.",
       {
         cause: error,
       },

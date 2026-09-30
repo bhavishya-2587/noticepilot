@@ -237,7 +237,7 @@ describe("extractNoticeIntelligence", () => {
     });
   });
 
-  it("returns evidence_invalid when evidence references a missing source segment", async () => {
+  it("filters out an item when evidence references a missing source segment", async () => {
     const result = createValidResult();
 
     result.items[0].evidence = [
@@ -249,15 +249,15 @@ describe("extractNoticeIntelligence", () => {
 
     mockGroqResponse(result);
 
-    await expect(
-      extractNoticeIntelligence(successfulIngestion),
-    ).rejects.toSatisfy((error: unknown) => {
-      expectIntelligenceFailure(error, "evidence_invalid");
-      return true;
-    });
+    const verifiedResult = await extractNoticeIntelligence(
+      successfulIngestion,
+    );
+
+    expect(verifiedResult.items).toHaveLength(1);
+    expect(verifiedResult.items[0]).toEqual(result.items[1]);
   });
 
-  it("returns evidence_invalid when evidence contains a fabricated quote", async () => {
+  it("filters out an item when evidence contains a fabricated quote", async () => {
     const result = createValidResult();
 
     result.items[0].evidence = [
@@ -269,12 +269,12 @@ describe("extractNoticeIntelligence", () => {
 
     mockGroqResponse(result);
 
-    await expect(
-      extractNoticeIntelligence(successfulIngestion),
-    ).rejects.toSatisfy((error: unknown) => {
-      expectIntelligenceFailure(error, "evidence_invalid");
-      return true;
-    });
+    const verifiedResult = await extractNoticeIntelligence(
+      successfulIngestion,
+    );
+
+    expect(verifiedResult.items).toHaveLength(1);
+    expect(verifiedResult.items[0]).toEqual(result.items[1]);
   });
 
   it("accepts evidence with harmless whitespace variation", async () => {

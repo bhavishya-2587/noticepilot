@@ -2,22 +2,20 @@ import "server-only";
 
 export const GROQ_MODEL = "openai/gpt-oss-120b";
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY;
-
-if (!GROQ_API_KEY) {
-  throw new Error(
-    "GROQ_API_KEY is not configured. Add it to the server environment before using NoticePilot intelligence.",
-  );
-}
-
 const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 
 export async function callGroqForJson(prompt: string): Promise<string> {
+  const apiKey = process.env.GROQ_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("GROQ_API_KEY is not configured.");
+  }
+
   const response = await fetch(GROQ_ENDPOINT, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${GROQ_API_KEY}`,
+      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
       model: GROQ_MODEL,
@@ -29,6 +27,7 @@ export async function callGroqForJson(prompt: string): Promise<string> {
 
   if (!response.ok) {
     const errorBody = await response.text();
+
     throw new Error(
       `Groq request failed with status ${response.status}: ${errorBody}`,
     );
