@@ -60,12 +60,7 @@ I'd rather be upfront here than have someone click around expecting something th
 - Extraction results connection to the dashboard ui successfullly implemented and working
 
 **In progress:**
-<<<<<<< HEAD
-- Calendar export (.ics)
-=======
 - Calendar export (.ics), so extracted deadlines and events can go straight into a calendar
->>>>>>> bb7eba3 (feat: harden intelligence extraction and evidence verification)
-
 ---
 
 ## Why this stack
