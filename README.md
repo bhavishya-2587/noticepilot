@@ -2,7 +2,7 @@
 
 I built NoticePilot because academic notices are usually a mess — a wall of text where the one deadline that actually matters is buried somewhere in paragraph three. You upload a notice (a PDF or a photo of one), and it pulls out the actual actionable stuff: deadlines, tasks, events, who it's for, who issued it — and for every fact it extracts, it shows you exactly which line of the original notice that came from. If the AI can't find something, it says so instead of guessing.
 
-Built solo for **GatewayHacks 2026**, targeting the **Equity in Education** track — the idea being that missed or misread notices cost some students more than others, especially if they don't have someone around to double-check what a confusing notice actually meant.
+Built solo for **GatewayHacks 2026**, targeting the **Education & Access** track — the idea being that missed or misread notices cost some students more than others, especially if they don't have someone around to double-check what a confusing notice actually meant.
 
 **Try it live:** https://noticepilot-seven.vercel.app/ — no setup needed, just upload a notice.
 
@@ -80,7 +80,7 @@ No database yet — notices are processed in memory per request and nothing is p
 
 ---
 
-## Why "Equity in Education"
+## Why "Education & Access"
 
 Notices that are dense, poorly formatted, or written in unfamiliar academic language don't affect all students equally — some students catch the deadline, others don't, through no fault of their own beyond how the information was presented. NoticePilot is aimed at closing that gap.
 
